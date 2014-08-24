@@ -32,6 +32,11 @@ public class ServerFileMetadata implements Parcelable
 	@SerializedName("artwork")
 	private String artworkUrl;
 
+	public ServerFileMetadata(String title, String artworkUrl) {
+		this.title = title;
+		this.artworkUrl = artworkUrl;
+	}
+
 	public String getTitle() {
 		return title;
 	}

@@ -35,14 +35,40 @@ import org.amahi.anywhere.server.client.ServerClient;
 import org.amahi.anywhere.server.model.ServerFile;
 import org.amahi.anywhere.server.model.ServerFileMetadata;
 import org.amahi.anywhere.server.model.ServerShare;
-import org.amahi.anywhere.task.FileMetadataRetrievingTask;
 import org.amahi.anywhere.util.Mimes;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
 public class ServerFilesMetadataAdapter extends BaseAdapter
 {
+	private static final class Metadata
+	{
+		private Metadata() {
+		}
+
+		public static final List<String> artwork = Arrays.asList(
+			"http://godsofart.com/wp-content/uploads/2011/09/mission-impossible-ghost-protocol-poster.jpg",
+			"http://www.screenslam.com/blog/wp-content/uploads/2013/06/Don-Jon-Movie-Poster.jpg",
+			"http://cdn.mos.totalfilm.com/images/h/hot-fuzz-2007--04.jpg",
+			"http://www.1stwebdesigner.com/wp-content/uploads/2010/01/movie-posters/inception-creative-movie-posters.jpg",
+			"http://gdj.gdj.netdna-cdn.com/wp-content/uploads/2012/10/movie+posters+16.jpg",
+			"http://www.fuelyourcreativity.com/files/Movie-Poster-Typography-8.jpeg",
+			"http://paintings-art-picture.com/paintings/wp-content/uploads/2012/03/20/Movie-Poster-29.jpg"
+		);
+
+		public static final List<String> title = Arrays.asList(
+			"Ghost Protocol",
+			"Don Jon",
+			"Hot Fuzz",
+			"Inception",
+			"Looper",
+			"Zombiland",
+			"Die Hard"
+		);
+	}
+
 	public static final class Tags
 	{
 		private Tags() {
@@ -189,7 +215,12 @@ public class ServerFilesMetadataAdapter extends BaseAdapter
 		fileView.setTag(Tags.SHARE, share);
 		fileView.setTag(Tags.FILE, file);
 
-		FileMetadataRetrievingTask.execute(serverClient, fileView);
+		int fileMetadataPosition = file.getName().hashCode() % (Metadata.artwork.size());
+
+		String fileTitle = Metadata.title.get(fileMetadataPosition);
+		String fileArtworkUrl = Metadata.artwork.get(fileMetadataPosition);
+
+		bindView(file, new ServerFileMetadata(fileTitle, fileArtworkUrl), fileView);
 	}
 
 	public static void bindView(ServerFile file, ServerFileMetadata fileMetadata, View fileView) {
