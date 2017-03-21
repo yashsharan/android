@@ -1,3 +1,4 @@
+
 /*
  * Copyright (c) 2014 Amahi
  *
@@ -20,121 +21,86 @@
 package org.amahi.anywhere.adapter;
 
 import android.content.Context;
+import android.text.Spannable;
+import android.text.SpannableStringBuilder;
+import android.text.TextUtils;
+import android.text.format.Formatter;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.BaseAdapter;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import org.amahi.anywhere.R;
+import org.amahi.anywhere.server.client.ServerClient;
 import org.amahi.anywhere.server.model.ServerFile;
 import org.amahi.anywhere.util.Mimes;
 
+import java.text.SimpleDateFormat;
 import java.util.Collections;
-import java.util.List;
+import java.util.Date;
 
 /**
  * Files adapter. Visualizes files
  * for the {@link org.amahi.anywhere.fragment.ServerFilesFragment}.
  */
-public class ServerFilesAdapter extends BaseAdapter
+public class ServerFilesAdapter extends FilesFilterBaseAdapter
 {
-	private final LayoutInflater layoutInflater;
+	private Context context;
 
-	private List<ServerFile> files;
-
-	public ServerFilesAdapter(Context context) {
+	public ServerFilesAdapter(Context context, ServerClient serverClient) {
+		this.serverClient = serverClient;
 		this.layoutInflater = LayoutInflater.from(context);
-
+		this.context=context;
 		this.files = Collections.emptyList();
+		this.filteredFiles = Collections.emptyList();
 	}
 
-	public void replaceWith(List<ServerFile> files) {
-		this.files = files;
-
-		notifyDataSetChanged();
-	}
-
-	@Override
-	public int getCount() {
-		return files.size();
-	}
-
-	public List<ServerFile> getItems() {
-		return files;
-	}
-
-	@Override
-	public ServerFile getItem(int position) {
-		return files.get(position);
-	}
-
-	@Override
-	public long getItemId(int position) {
-		return position;
-	}
-
-	@Override
-	public View getView(int position, View view, ViewGroup container) {
-		ServerFile file = getItem(position);
-
-		if (view == null) {
-			view = newView(container);
-		}
-
-		bindView(file, view);
-
-		return view;
-	}
-
-	private View newView(ViewGroup container) {
+	protected View newView(ViewGroup container) {
 		return layoutInflater.inflate(R.layout.view_server_file_item, container, false);
 	}
 
-	private void bindView(ServerFile file, View view) {
+	protected void bindView(ServerFile file, View view) {
 		ImageView fileIconView = (ImageView) view.findViewById(R.id.icon);
 		TextView fileTextView = (TextView) view.findViewById(R.id.text);
+		TextView fileSize = (TextView) view.findViewById(R.id.file_size);
+		TextView fileLastModified = (TextView) view.findViewById(R.id.last_modified);
+		LinearLayout moreInfo = (LinearLayout) view.findViewById(R.id.more_info);
 
-		fileIconView.setImageResource(getFileIcon(file));
-		fileTextView.setText(getFileName(file));
-	}
+		if(Mimes.match(file.getMime()) == Mimes.Type.DIRECTORY){
+			moreInfo.setVisibility(View.GONE);
 
-	private String getFileName(ServerFile file) {
-		return file.getName();
-	}
+		} else {
+			moreInfo.setVisibility(View.VISIBLE);
 
-	private int getFileIcon(ServerFile file) {
-		switch (Mimes.match(file.getMime())) {
-			case Mimes.Type.ARCHIVE:
-				return R.drawable.ic_file_archive;
+			fileSize.setText(Formatter.formatFileSize(context, getFileSize(file)));
 
-			case Mimes.Type.AUDIO:
-				return R.drawable.ic_file_audio;
-
-			case Mimes.Type.CODE:
-				return R.drawable.ic_file_code;
-
-			case Mimes.Type.DOCUMENT:
-				return R.drawable.ic_file_text;
-
-			case Mimes.Type.DIRECTORY:
-				return R.drawable.ic_file_directory;
-
-			case Mimes.Type.IMAGE:
-				return R.drawable.ic_file_image;
-
-			case Mimes.Type.PRESENTATION:
-				return R.drawable.ic_file_presentation;
-
-			case Mimes.Type.SPREADSHEET:
-				return R.drawable.ic_file_spreadsheet;
-
-			case Mimes.Type.VIDEO:
-				return R.drawable.ic_file_video;
-
-			default:
-				return R.drawable.ic_file_generic;
+			Date d = getLastModified(file);
+			SimpleDateFormat dt = new SimpleDateFormat("EEE LLL dd yyyy");
+			fileLastModified.setText(dt.format(d));
 		}
+
+		SpannableStringBuilder sb = new SpannableStringBuilder(file.getName());
+		if(queryString != null && !TextUtils.isEmpty(queryString)) {
+			int searchMatchPosition = file.getName().toLowerCase().indexOf(queryString.toLowerCase());
+			if (searchMatchPosition != -1)
+				sb.setSpan(fcs, searchMatchPosition, searchMatchPosition + queryString.length(), Spannable.SPAN_INCLUSIVE_INCLUSIVE);
+		}
+		fileTextView.setText(sb);
+
+		if (Mimes.match(file.getMime()) == Mimes.Type.IMAGE) {
+			setUpImageIcon(file, fileIconView);
+		} else {
+			fileIconView.setImageResource(getFileIcon(file));
+		}
+	}
+
+	private long getFileSize(ServerFile file) {
+		return file.getSize();
+	}
+
+	private Date getLastModified(ServerFile file) {
+		return file.getModificationTime();
 	}
 }

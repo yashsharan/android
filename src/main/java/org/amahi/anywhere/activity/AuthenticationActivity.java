@@ -23,11 +23,16 @@ import android.accounts.Account;
 import android.accounts.AccountAuthenticatorActivity;
 import android.accounts.AccountManager;
 import android.app.Activity;
+import android.graphics.PorterDuff;
 import android.os.Bundle;
+import android.support.design.widget.TextInputLayout;
+import android.support.v4.content.ContextCompat;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.text.method.LinkMovementMethod;
+import android.view.KeyEvent;
 import android.view.View;
+import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
 import android.widget.TextView;
 
@@ -70,17 +75,8 @@ public class AuthenticationActivity extends AccountAuthenticatorActivity impleme
 	}
 
 	private void setUpAuthentication() {
-		setUpAuthenticationAction();
 		setUpAuthenticationMessages();
 		setUpAuthenticationListeners();
-	}
-
-	private void setUpAuthenticationAction() {
-		if (getUsername().isEmpty() || getPassword().isEmpty()) {
-			getAuthenticationButton().setEnabled(false);
-		} else {
-			getAuthenticationButton().setEnabled(true);
-		}
 	}
 
 	private String getUsername() {
@@ -88,7 +84,8 @@ public class AuthenticationActivity extends AccountAuthenticatorActivity impleme
 	}
 
 	private EditText getUsernameEdit() {
-		return (EditText) findViewById(R.id.edit_username);
+		TextInputLayout username_layout =  (TextInputLayout) findViewById(R.id.username_layout);
+		return username_layout.getEditText();
 	}
 
 	private String getPassword() {
@@ -96,7 +93,8 @@ public class AuthenticationActivity extends AccountAuthenticatorActivity impleme
 	}
 
 	private EditText getPasswordEdit() {
-		return (EditText) findViewById(R.id.edit_password);
+		TextInputLayout password_layout =  (TextInputLayout) findViewById(R.id.password_layout);
+		return password_layout.getEditText();
 	}
 
 	private ActionProcessButton getAuthenticationButton() {
@@ -119,12 +117,21 @@ public class AuthenticationActivity extends AccountAuthenticatorActivity impleme
 	private void setUpAuthenticationTextListener() {
 		getUsernameEdit().addTextChangedListener(this);
 		getPasswordEdit().addTextChangedListener(this);
+		getPasswordEdit().setOnEditorActionListener(new EditText.OnEditorActionListener() {
+			@Override
+			public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
+				boolean handled = false;
+				if (actionId == EditorInfo.IME_ACTION_GO) {
+					onClick(getAuthenticationButton());
+					handled = true;
+				}
+				return handled;
+			}
+		});
 	}
 
 	@Override
 	public void onTextChanged(CharSequence text, int after, int before, int count) {
-		setUpAuthenticationAction();
-
 		hideAuthenticationFailureMessage();
 	}
 
@@ -146,9 +153,60 @@ public class AuthenticationActivity extends AccountAuthenticatorActivity impleme
 
 	@Override
 	public void onClick(View view) {
-		startAuthentication();
+		if(getUsername().trim().isEmpty() || getPassword().trim().isEmpty()){
+			ViewDirector.of(this,R.id.animator_message).show(R.id.text_message_authentication_empty);
 
-		authenticate();
+			if(getUsername().trim().isEmpty())
+				getUsernameEdit().getBackground().setColorFilter(ContextCompat.getColor(AuthenticationActivity.this, android.R.color.holo_red_light), PorterDuff.Mode.SRC_ATOP);
+			if(getPassword().trim().isEmpty())
+				getPasswordEdit().getBackground().setColorFilter(ContextCompat.getColor(AuthenticationActivity.this, android.R.color.holo_red_light), PorterDuff.Mode.SRC_ATOP);
+
+			getUsernameEdit().addTextChangedListener(new TextWatcher() {
+				@Override
+				public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+
+				}
+
+				@Override
+				public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+					if(!getUsername().trim().isEmpty())
+						getUsernameEdit().getBackground().setColorFilter(ContextCompat.getColor(AuthenticationActivity.this, R.color.blue_normal),PorterDuff.Mode.SRC_ATOP);
+					else
+						getUsernameEdit().getBackground().setColorFilter(ContextCompat.getColor(AuthenticationActivity.this, R.color.holo_red_light), PorterDuff.Mode.SRC_ATOP);
+				}
+
+				@Override
+				public void afterTextChanged(Editable editable) {
+
+				}
+			});
+
+			getPasswordEdit().addTextChangedListener(new TextWatcher() {
+				@Override
+				public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+
+				}
+
+				@Override
+				public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+					if(!getPassword().trim().isEmpty())
+						getPasswordEdit().getBackground().setColorFilter(ContextCompat.getColor(AuthenticationActivity.this, R.color.blue_normal),PorterDuff.Mode.SRC_ATOP);
+					else
+						getPasswordEdit().getBackground().setColorFilter(ContextCompat.getColor(AuthenticationActivity.this, android.R.color.holo_red_light), PorterDuff.Mode.SRC_ATOP);
+				}
+
+				@Override
+				public void afterTextChanged(Editable editable) {
+
+				}
+			});
+
+		}
+		else {
+			startAuthentication();
+
+			authenticate();
+		}
 	}
 
 	private void startAuthentication() {

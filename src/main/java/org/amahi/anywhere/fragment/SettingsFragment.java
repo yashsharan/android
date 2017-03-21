@@ -29,10 +29,13 @@ import android.os.Bundle;
 import android.preference.ListPreference;
 import android.preference.Preference;
 import android.preference.PreferenceFragment;
+import android.util.Log;
+import android.widget.Toast;
 
 import org.amahi.anywhere.AmahiApplication;
 import org.amahi.anywhere.R;
 import org.amahi.anywhere.account.AmahiAccount;
+import org.amahi.anywhere.activity.NavigationActivity;
 import org.amahi.anywhere.server.ApiConnection;
 import org.amahi.anywhere.server.client.ServerClient;
 import org.amahi.anywhere.util.Android;
@@ -106,11 +109,13 @@ public class SettingsFragment extends PreferenceFragment implements Preference.O
 		Preference applicationVersion = getPreference(R.string.preference_key_about_version);
 		Preference applicationFeedback = getPreference(R.string.preference_key_about_feedback);
 		Preference applicationRating = getPreference(R.string.preference_key_about_rating);
+		Preference shareApp = getPreference(R.string.preference_key_tell_a_friend);
 
 		accountSignOut.setOnPreferenceClickListener(this);
 		applicationVersion.setOnPreferenceClickListener(this);
 		applicationFeedback.setOnPreferenceClickListener(this);
 		applicationRating.setOnPreferenceClickListener(this);
+		shareApp.setOnPreferenceClickListener(this);
 	}
 
 	@Override
@@ -129,6 +134,10 @@ public class SettingsFragment extends PreferenceFragment implements Preference.O
 
 		if (preference.getKey().equals(getString(R.string.preference_key_about_rating))) {
 			setUpApplicationRating();
+		}
+
+		if (preference.getKey().equals(getString(R.string.preference_key_tell_a_friend))){
+			sharedIntent();
 		}
 
 		return true;
@@ -158,22 +167,45 @@ public class SettingsFragment extends PreferenceFragment implements Preference.O
 	}
 
 	private void tearDownActivity() {
+		Toast.makeText(getActivity(), R.string.message_logout, Toast.LENGTH_SHORT).show();
+		Intent myIntent = new Intent(getActivity().getApplicationContext(), NavigationActivity.class);
+		myIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+		startActivity(myIntent);
 		getActivity().finish();
 	}
 
+	private void sharedIntent(){
+		Intent sendIntent = new Intent();
+		sendIntent.setAction(Intent.ACTION_SEND);
+		sendIntent.putExtra(Intent.EXTRA_SUBJECT,getString(R.string.share_subject));
+		sendIntent.putExtra(Intent.EXTRA_TEXT,getString(R.string.share_message));
+		sendIntent.setType("text/plain");
+		startActivity(Intent.createChooser(sendIntent,getString(R.string.share_screen_title)));
+	}
+
 	private void setUpApplicationVersion() {
-		Intent intent = Intents.Builder.with(getActivity()).buildVersionIntent();
+		Intent intent = Intents.Builder.with(getActivity()).buildVersionIntent(getActivity());
 		startActivity(intent);
 	}
 
 	private void setUpApplicationFeedback() {
 		Intent intent = Intents.Builder.with(getActivity()).buildFeedbackIntent();
-		startActivity(intent);
+		if (intent.resolveActivity(getActivity().getPackageManager()) != null) {
+			startActivity(intent);
+		}
+		else {
+			Toast.makeText(getActivity(), R.string.application_not_found, Toast.LENGTH_SHORT).show();
+		}
 	}
 
 	private void setUpApplicationRating() {
 		Intent intent = Intents.Builder.with(getActivity()).buildGooglePlayIntent();
-		startActivity(intent);
+		if (intent.resolveActivity(getActivity().getPackageManager()) != null) {
+			startActivity(intent);
+		}
+		else {
+			Toast.makeText(getActivity(), R.string.application_not_found, Toast.LENGTH_SHORT).show();
+		}
 	}
 
 	@Override
